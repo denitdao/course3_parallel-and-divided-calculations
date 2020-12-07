@@ -1,14 +1,28 @@
 package ua.kpi.tef.pdc.lab05;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class GaussJordanElimination {
 
-    static void PrintMatrix(float[][] m, int n) {
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j <= n; j++)
-                System.out.print(m[i][j] + " ");
-            System.out.println();
+    static class Calculate extends Thread {
+
+        float[] targetRow, usedRow;
+        int n, diagId;
+
+        public Calculate(float[] targetRow, float[] usedRow, int n, int diagId) {
+            this.targetRow = targetRow;
+            this.usedRow = usedRow;
+            this.n = n;
+            this.diagId = diagId;
         }
-        System.out.println();
+
+        @Override
+        public void run() {
+            float p = targetRow[diagId] / usedRow[diagId];
+            for (int k = 0; k <= n; k++)
+                targetRow[k] = targetRow[k] - (usedRow[k]) * p;
+        }
     }
 
     static int OrganizeMatrix(float[][] m, int n) {
@@ -33,28 +47,21 @@ public class GaussJordanElimination {
     }
 
     static void TransformMatrix(float[][] m, int n) {
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                // Excluding all i == j
+        for (int i = 0; i < n; i++) { // on each column
+            List<Thread> threads = new ArrayList<>();
+            for (int j = 0; j < n; j++) { // set all items in a column to zero
                 if (i != j) {
-                    // Converting Matrix to reduced row echelon form(diagonal matrix)
-                    float p = m[j][i] / m[i][i];
-                    for (int k = 0; k <= n; k++)
-                        m[j][k] = m[j][k] - (m[i][k]) * p;
+                    threads.add(new Calculate(m[j], m[i], n, i));
                 }
             }
-        }
-    }
-
-    static void PrintResult(float[][] m, int n, int flag) {
-        System.out.print("Result is: ");
-        if (flag == 2)
-            System.out.println("Infinite Solutions Exists");
-        else if (flag == 3)
-            System.out.println("No Solution Exists");
-        else {
-            for (int i = 0; i < n; i++)
-                System.out.print(m[i][n] / m[i][i] + " ");
+            threads.forEach(Thread::start);
+            threads.forEach(t -> {
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
         }
     }
 
@@ -73,19 +80,37 @@ public class GaussJordanElimination {
         return flag;
     }
 
+    static void PrintMatrix(float[][] m, int n) {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j <= n; j++)
+                System.out.print(m[i][j] + ((j == n - 1) ? " | " : " "));
+            System.out.println();
+        }
+        System.out.println();
+    }
+
+    static void PrintResult(float[][] m, int n, int flag) {
+        System.out.print("Result is: ");
+        if (flag == 2)
+            System.out.println("Infinite Solutions Exists");
+        else if (flag == 3)
+            System.out.println("No Solution Exists");
+        else {
+            for (int i = 0; i < n; i++)
+                System.out.print(m[i][n] / m[i][i] + " ");
+        }
+    }
+
     public static void main(String[] args) {
         System.out.println("Given Matrix is: ");
         int n = 3;
         float[][] m = {
-                {0, 2, 1, 4},
-                {1, 1, 2, 6},
-                {2, 1, 1, 7}};
-                    /*{
-                {0, 2, 1, 4},
-                {1, 1, 2, 6},
-                {2, 1, 1, 7}};*/
+                {2, 1, 2, 10},
+                {1, 0, 1, 8},
+                {3, 1, -1, 2}};
         PrintMatrix(m, n);
 
+        // Moving Rows
         System.out.println("Organized Matrix is: ");
         int flag = OrganizeMatrix(m, n);
         PrintMatrix(m, n);
@@ -103,9 +128,10 @@ public class GaussJordanElimination {
 }
 /*
 6.	Жордана з вибором головного елемента по стовпцю
-http://e-maxx.ru/algo/linear_systems_gauss
 
-https://www.geeksforgeeks.org/program-for-gauss-jordan-elimination-method/
+
+
+
 
 https://math.libretexts.org/Bookshelves/Applied_Mathematics/Book%3A_Applied_Finite_Mathematics_(Sekhon_and_Bloom)/02%3A_Matrices/2.02%3A_Systems_of_Linear_Equations_and_the_Gauss-Jordan_Method
 */
